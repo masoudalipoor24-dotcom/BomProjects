@@ -54,6 +54,20 @@ Run options:
 2. Macro `RunCode`: `RunAutoSetupBOM()`
 3. Button click event: `Call AutoSetupBOM`
 
+## Populate Existing ACCDB from Terminal
+
+If you already have an `.accdb` file and want to inject the BOM schema from terminal:
+
+```powershell
+python access/scripts/populate_accdb.py --db access/BomProjects.accdb --schema access/sql/01_schema.sql
+```
+
+This script creates tables/indexes/FKs from SQL and seeds lookup data (`tblUOM`, `tblItemType`).
+It is idempotent on re-run:
+
+- existing objects are counted as `SCHEMA_SKIP`
+- only real unexpected errors are reported as `SCHEMA_FAIL`
+
 ## Saved Query Names
 
 Create each query using the SQL in these files:

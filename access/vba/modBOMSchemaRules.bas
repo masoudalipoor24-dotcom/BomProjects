@@ -7,12 +7,12 @@ Public Sub ApplyBOMDefaultsAndRules()
 
     SetFieldDefault "tblItems", "IsActive", "True"
     SetFieldDefault "tblItems", "CreatedOn", "=Now()"
-    SetFieldDefault "tblItems", "CreatedBy", "=Environ(""USERNAME"")"
+    SetFieldDefaultSafe "tblItems", "CreatedBy", "=CurrentUser()", """"""
     SetFieldValidation "tblItems", "ItemCode", "Not Like ""* *""", "ItemCode cannot contain spaces."
 
     SetFieldDefault "tblBOMHeader", "IsActive", "False"
     SetFieldDefault "tblBOMHeader", "CreatedOn", "=Now()"
-    SetFieldDefault "tblBOMHeader", "CreatedBy", "=Environ(""USERNAME"")"
+    SetFieldDefaultSafe "tblBOMHeader", "CreatedBy", "=CurrentUser()", """"""
     SetTableValidation "tblBOMHeader", _
         "([IsActive]=False AND IsNull([ActiveKey])) OR ([IsActive]=True AND [ActiveKey]=[FGItemID])", _
         "Active BOM must have ActiveKey = FGItemID; inactive BOM must have ActiveKey = Null."
@@ -40,6 +40,18 @@ Private Sub SetFieldDefault(ByVal tableName As String, ByVal fieldName As String
     Dim db As DAO.Database
     Set db = CurrentDb()
     db.TableDefs(tableName).Fields(fieldName).DefaultValue = defaultValue
+End Sub
+
+Private Sub SetFieldDefaultSafe(ByVal tableName As String, ByVal fieldName As String, ByVal primaryDefault As String, ByVal fallbackDefault As String)
+    On Error GoTo Fallback
+    SetFieldDefault tableName, fieldName, primaryDefault
+    Exit Sub
+
+Fallback:
+    Err.Clear
+    On Error Resume Next
+    SetFieldDefault tableName, fieldName, fallbackDefault
+    On Error GoTo 0
 End Sub
 
 Private Sub SetFieldValidation(ByVal tableName As String, ByVal fieldName As String, ByVal rule As String, ByVal message As String)

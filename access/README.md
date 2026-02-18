@@ -17,6 +17,7 @@ This folder contains a full Microsoft Access (ACCDB) implementation package for:
 - `access/vba/modBOM.bas`: core business logic (versioning, activation, copy, cycle, explosion)
 - `access/vba/modBOMSchemaRules.bas`: apply defaults/validation rules + seed lookups
 - `access/vba/modBOMAutoSetup.bas`: one-click installer (tables, indexes, relations, queries, rules, seed)
+- `access/vba/modBOMUIBuilder.bas`: one-click form/report builder inside Access
 - `access/vba/frmItem.code.vba`: `frmItem` form events
 - `access/vba/frmBOM.code.vba`: `frmBOM` main form events
 - `access/vba/subfrmBOMLines.code.vba`: `subfrmBOMLines` events
@@ -31,6 +32,7 @@ This folder contains a full Microsoft Access (ACCDB) implementation package for:
    - Import `modBOM.bas` as a standard module named `modBOM`.
    - Import `modBOMSchemaRules.bas` as a standard module named `modBOMSchemaRules`.
    - Import `modBOMAutoSetup.bas` as a standard module named `modBOMAutoSetup`.
+   - Import `modBOMUIBuilder.bas` as a standard module named `modBOMUIBuilder`.
    - Paste form/report code into code-behind for matching object names.
 5. In Immediate Window, run one command:
    - `AutoSetupBOM`
@@ -53,6 +55,29 @@ Run options:
 1. Immediate Window: `AutoSetupBOM`
 2. Macro `RunCode`: `RunAutoSetupBOM()`
 3. Button click event: `Call AutoSetupBOM`
+
+## One-Click UI Build (Forms + Report)
+
+After importing modules, run:
+
+```vb
+AutoSetupBOMWithUI
+```
+
+This will:
+
+- run backend setup (`AutoSetupBOM`)
+- create/replace `frmItem`
+- create/replace `subfrmBOMLines`
+- create/replace `frmBOM`
+- create/replace `rptBOM`
+- attach code from files in `access/vba/*.code.vba` to created objects
+
+Alternative command (same result):
+
+```vb
+AutoSetupAllWithUI
+```
 
 ## Populate Existing ACCDB from Terminal
 

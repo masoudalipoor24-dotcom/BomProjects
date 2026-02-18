@@ -14,21 +14,21 @@ Public Sub AutoSetupBOM(Optional ByVal RebuildQueries As Boolean = True)
     EnsureTables
 
     mCurrentStep = "Create indexes"
-    EnsureIndexes
+    RunStepWithTolerance StepIndexes:=True
 
     mCurrentStep = "Create relationships"
-    EnsureRelationships
+    RunStepWithTolerance StepRelationships:=True
 
     If RebuildQueries Then
         mCurrentStep = "Create saved queries"
-        EnsureSavedQueries
+        RunStepWithTolerance StepSavedQueries:=True
     End If
 
     mCurrentStep = "Apply defaults and validation rules"
-    ApplyBOMDefaultsAndRules
+    RunStepWithTolerance StepApplyRules:=True
 
     mCurrentStep = "Seed lookup data"
-    SeedLookupData
+    RunStepWithTolerance StepSeedData:=True
 
     mCurrentStep = "Done"
     DoCmd.Hourglass False
@@ -37,12 +37,69 @@ Public Sub AutoSetupBOM(Optional ByVal RebuildQueries As Boolean = True)
     Exit Sub
 
 EH:
+    Dim errNo As Long
+    Dim errDesc As String
+    errNo = Err.Number
+    errDesc = Err.Description
+
     On Error Resume Next
     DoCmd.Hourglass False
     Application.Echo True
     MsgBox "BOM Auto Setup failed at step: " & mCurrentStep & vbCrLf & _
-           "Error " & Err.Number & ": " & Err.Description, vbCritical
+           "Error " & errNo & ": " & errDesc, vbCritical
     Err.Clear
+End Sub
+
+Private Sub RunStepWithTolerance(Optional ByVal StepIndexes As Boolean = False, _
+                                 Optional ByVal StepRelationships As Boolean = False, _
+                                 Optional ByVal StepSavedQueries As Boolean = False, _
+                                 Optional ByVal StepApplyRules As Boolean = False, _
+                                 Optional ByVal StepSeedData As Boolean = False)
+    On Error GoTo EH
+
+    If StepIndexes Then
+        EnsureIndexes
+        Exit Sub
+    End If
+
+    If StepRelationships Then
+        EnsureRelationships
+        Exit Sub
+    End If
+
+    If StepSavedQueries Then
+        EnsureSavedQueries
+        Exit Sub
+    End If
+
+    If StepApplyRules Then
+        ApplyBOMDefaultsAndRules
+        Exit Sub
+    End If
+
+    If StepSeedData Then
+        SeedLookupData
+        Exit Sub
+    End If
+    Exit Sub
+
+EH:
+    If ShouldIgnoreSetupError(mCurrentStep, Err.Number, Err.Description) Then
+        Err.Clear
+        Exit Sub
+    End If
+
+    Err.Raise Err.Number, "RunStepWithTolerance(" & mCurrentStep & ")", Err.Description
+End Sub
+
+Public Sub AutoSetupBOMWithUI()
+    On Error GoTo EH
+    AutoSetupBOM True
+    BuildBOMUIObjects
+    MsgBox "BOM Auto Setup + UI completed successfully.", vbInformation
+    Exit Sub
+EH:
+    MsgBox "BOM Auto Setup + UI failed: " & Err.Description, vbCritical
 End Sub
 
 Public Function RunAutoSetupBOM() As Boolean
@@ -142,45 +199,78 @@ Private Sub EnsureTables()
 End Sub
 
 Private Sub EnsureIndexes()
-    EnsureIndex "tblUOM", "UX_tblUOM_UOMCode", "UOMCode", True
-    EnsureIndex "tblItemType", "UX_tblItemType_TypeCode", "TypeCode", True
-    EnsureIndex "tblItems", "UX_tblItems_ItemCode", "ItemCode", True
-    EnsureIndex "tblItems", "IX_tblItems_UOMID", "UOMID", False
-    EnsureIndex "tblItems", "IX_tblItems_ItemTypeID", "ItemTypeID", False
-    EnsureIndex "tblBOMHeader", "UX_tblBOMHeader_FG_Version", "FGItemID, VersionNo", True
-    EnsureIndex "tblBOMHeader", "UX_tblBOMHeader_ActiveKey", "ActiveKey", True
-    EnsureIndex "tblBOMHeader", "IX_tblBOMHeader_FGItemID", "FGItemID", False
-    EnsureIndex "tblBOMLines", "UX_tblBOMLines_Header_Component", "BOMHeaderID, ComponentItemID", True
-    EnsureIndex "tblBOMLines", "UX_tblBOMLines_Header_LineNo", "BOMHeaderID, LineNo", True
-    EnsureIndex "tblBOMLines", "IX_tblBOMLines_ComponentItemID", "ComponentItemID", False
-    EnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_RunID", "RunID", False
-    EnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_Root", "RootBOMHeaderID", False
+    TryEnsureIndex "tblUOM", "UX_tblUOM_UOMCode", "UOMCode", True
+    TryEnsureIndex "tblItemType", "UX_tblItemType_TypeCode", "TypeCode", True
+    TryEnsureIndex "tblItems", "UX_tblItems_ItemCode", "ItemCode", True
+    TryEnsureIndex "tblItems", "IX_tblItems_UOMID", "UOMID", False
+    TryEnsureIndex "tblItems", "IX_tblItems_ItemTypeID", "ItemTypeID", False
+    TryEnsureIndex "tblBOMHeader", "UX_tblBOMHeader_FG_Version", "FGItemID, VersionNo", True
+    TryEnsureIndex "tblBOMHeader", "UX_tblBOMHeader_ActiveKey", "ActiveKey", True
+    TryEnsureIndex "tblBOMHeader", "IX_tblBOMHeader_FGItemID", "FGItemID", False
+    TryEnsureIndex "tblBOMLines", "UX_tblBOMLines_Header_Component", "BOMHeaderID, ComponentItemID", True
+    TryEnsureIndex "tblBOMLines", "UX_tblBOMLines_Header_LineNo", "BOMHeaderID, LineNo", True
+    TryEnsureIndex "tblBOMLines", "IX_tblBOMLines_ComponentItemID", "ComponentItemID", False
+    TryEnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_RunID", "RunID", False
+    TryEnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_Root", "RootBOMHeaderID", False
+    mCurrentStep = "Create indexes"
+End Sub
+
+Private Sub EnsureIndexWithStep(ByVal tableName As String, ByVal indexName As String, ByVal fieldsCsv As String, ByVal isUnique As Boolean)
+    mCurrentStep = "Create indexes: " & tableName & "." & indexName
+    EnsureIndex tableName, indexName, fieldsCsv, isUnique
+End Sub
+
+Private Sub TryEnsureIndex(ByVal tableName As String, ByVal indexName As String, ByVal fieldsCsv As String, ByVal isUnique As Boolean)
+    On Error GoTo EH
+    EnsureIndexWithStep tableName, indexName, fieldsCsv, isUnique
+    Exit Sub
+EH:
+    If IsIndexErrorIgnorable(Err.Number, Err.Description) Then
+        Err.Clear
+        Exit Sub
+    End If
+    Err.Raise Err.Number, Err.Source, Err.Description
 End Sub
 
 Private Sub EnsureRelationships()
-    EnsureRelation "FK_tblItems_tblUOM", "tblUOM", "tblItems", "UOMID", "UOMID", False
-    EnsureRelation "FK_tblItems_tblItemType", "tblItemType", "tblItems", "ItemTypeID", "ItemTypeID", False
-    EnsureRelation "FK_tblBOMHeader_tblItems_FG", "tblItems", "tblBOMHeader", "ItemID", "FGItemID", False
-    EnsureRelation "FK_tblBOMLines_tblBOMHeader", "tblBOMHeader", "tblBOMLines", "BOMHeaderID", "BOMHeaderID", True
-    EnsureRelation "FK_tblBOMLines_tblItems_Component", "tblItems", "tblBOMLines", "ItemID", "ComponentItemID", False
-    EnsureRelation "FK_tblBOMLines_tblUOM", "tblUOM", "tblBOMLines", "UOMID", "UOMID", False
+    TryEnsureRelation "FK_tblItems_tblUOM", "tblUOM", "tblItems", "UOMID", "UOMID", False
+    TryEnsureRelation "FK_tblItems_tblItemType", "tblItemType", "tblItems", "ItemTypeID", "ItemTypeID", False
+    TryEnsureRelation "FK_tblBOMHeader_tblItems_FG", "tblItems", "tblBOMHeader", "ItemID", "FGItemID", False
+    TryEnsureRelation "FK_tblBOMLines_tblBOMHeader", "tblBOMHeader", "tblBOMLines", "BOMHeaderID", "BOMHeaderID", True
+    TryEnsureRelation "FK_tblBOMLines_tblItems_Component", "tblItems", "tblBOMLines", "ItemID", "ComponentItemID", False
+    TryEnsureRelation "FK_tblBOMLines_tblUOM", "tblUOM", "tblBOMLines", "UOMID", "UOMID", False
+End Sub
+
+Private Sub TryEnsureRelation(ByVal relationName As String, ByVal parentTable As String, ByVal childTable As String, _
+                              ByVal parentField As String, ByVal childField As String, _
+                              Optional ByVal cascadeDelete As Boolean = False)
+    On Error GoTo EH
+    mCurrentStep = "Create relationships: " & relationName
+    EnsureRelation relationName, parentTable, childTable, parentField, childField, cascadeDelete
+    Exit Sub
+EH:
+    If IsAlreadyExistsError(Err.Number, Err.Description) Then
+        Err.Clear
+        Exit Sub
+    End If
+    Err.Raise Err.Number, Err.Source, Err.Description
 End Sub
 
 Private Sub EnsureSavedQueries()
-    UpsertQueryDef "qryBOMActiveByItem", _
+    SafeUpsertQueryDef "qryBOMActiveByItem", _
         "PARAMETERS pFGItemID Long;" & vbCrLf & _
         "SELECT h.*" & vbCrLf & _
         "FROM tblBOMHeader AS h" & vbCrLf & _
         "WHERE h.FGItemID = [pFGItemID]" & vbCrLf & _
         "  AND h.IsActive = True;"
 
-    UpsertQueryDef "qryValidationDuplicates", _
+    SafeUpsertQueryDef "qryValidationDuplicates", _
         "SELECT BOMHeaderID, ComponentItemID, Count(*) AS Cnt" & vbCrLf & _
         "FROM tblBOMLines" & vbCrLf & _
         "GROUP BY BOMHeaderID, ComponentItemID" & vbCrLf & _
         "HAVING Count(*) > 1;"
 
-    UpsertQueryDef "qryBOMLinesWithItem", _
+    SafeUpsertQueryDef "qryBOMLinesWithItem", _
         "SELECT" & vbCrLf & _
         "    l.BOMLineID," & vbCrLf & _
         "    l.BOMHeaderID," & vbCrLf & _
@@ -201,7 +291,7 @@ Private Sub EnsureSavedQueries()
         "LEFT JOIN tblUOM AS u" & vbCrLf & _
         "ON l.UOMID = u.UOMID;"
 
-    UpsertQueryDef "qryBOMExplosion", _
+    SafeUpsertQueryDef "qryBOMExplosion", _
         "SELECT" & vbCrLf & _
         "    e.RootBOMHeaderID," & vbCrLf & _
         "    e.RootItemID," & vbCrLf & _
@@ -226,7 +316,7 @@ Private Sub EnsureSavedQueries()
         "WHERE e.RunID = TempVars!BOMRunID" & vbCrLf & _
         "ORDER BY e.SortKey;"
 
-    UpsertQueryDef "qryBOMCostRollup", _
+    SafeUpsertQueryDef "qryBOMCostRollup", _
         "SELECT" & vbCrLf & _
         "    e.RootItemID," & vbCrLf & _
         "    Sum(e.ExtQty * Nz(i.StdCost,0)) AS TotalStdCost" & vbCrLf & _
@@ -236,7 +326,7 @@ Private Sub EnsureSavedQueries()
         "WHERE e.RunID = TempVars!BOMRunID" & vbCrLf & _
         "GROUP BY e.RootItemID;"
 
-    UpsertQueryDef "qryBOMPrintDataset", _
+    SafeUpsertQueryDef "qryBOMPrintDataset", _
         "SELECT" & vbCrLf & _
         "    h.BOMHeaderID," & vbCrLf & _
         "    fg.ItemCode AS FGCode," & vbCrLf & _
@@ -261,12 +351,44 @@ Private Sub EnsureSavedQueries()
         "ORDER BY e.SortKey;"
 End Sub
 
+Private Sub SafeUpsertQueryDef(ByVal queryName As String, ByVal sqlText As String)
+    On Error GoTo EH
+    mCurrentStep = "Create saved queries: " & queryName
+    UpsertQueryDef queryName, sqlText
+    Exit Sub
+EH:
+    If IsAlreadyExistsError(Err.Number, Err.Description) Then
+        Err.Clear
+        Exit Sub
+    End If
+    Err.Raise Err.Number, Err.Source, Err.Description
+End Sub
+
 Private Sub EnsureIndex(ByVal tableName As String, ByVal indexName As String, ByVal fieldsCsv As String, ByVal isUnique As Boolean)
+    On Error GoTo EH
     If IndexExists(tableName, indexName) Then Exit Sub
 
     Dim sql As String
     sql = "CREATE " & IIf(isUnique, "UNIQUE ", "") & "INDEX " & indexName & " ON " & tableName & " (" & fieldsCsv & ");"
     ExecDDL sql
+    Exit Sub
+
+EH:
+    Dim errNo As Long
+    Dim errDesc As String
+    errNo = Err.Number
+    errDesc = Err.Description
+
+    ' Fallback: build index by DAO API (more stable across Access variants).
+    On Error Resume Next
+    CreateIndexDAO tableName, indexName, fieldsCsv, isUnique
+    If Err.Number = 0 Then Exit Sub
+    Err.Clear
+    On Error GoTo 0
+
+    If IndexExists(tableName, indexName) Then Exit Sub
+    If IsIndexErrorIgnorable(errNo, errDesc) Then Exit Sub
+    Err.Raise errNo, "EnsureIndex(" & tableName & "." & indexName & ")", errDesc
 End Sub
 
 Private Sub EnsureRelation(ByVal relationName As String, ByVal parentTable As String, ByVal childTable As String, _
@@ -319,15 +441,124 @@ Private Function TableExists(ByVal tableName As String) As Boolean
 End Function
 
 Private Function IndexExists(ByVal tableName As String, ByVal indexName As String) As Boolean
+    On Error GoTo SafeExit
     If Not TableExists(tableName) Then Exit Function
 
+    Dim tdf As DAO.TableDef
+    Set tdf = CurrentDb.TableDefs(tableName)
+
     Dim idx As DAO.Index
-    For Each idx In CurrentDb.TableDefs(tableName).Indexes
+    For Each idx In tdf.Indexes
         If StrComp(idx.Name, indexName, vbTextCompare) = 0 Then
             IndexExists = True
             Exit Function
         End If
     Next idx
+
+SafeExit:
+End Function
+
+Private Sub CreateIndexDAO(ByVal tableName As String, ByVal indexName As String, ByVal fieldsCsv As String, ByVal isUnique As Boolean)
+    Dim db As DAO.Database
+    Set db = CurrentDb()
+
+    Dim tdf As DAO.TableDef
+    Set tdf = db.TableDefs(tableName)
+
+    Dim idx As DAO.Index
+    Set idx = tdf.CreateIndex(indexName)
+    idx.Unique = isUnique
+
+    Dim parts() As String
+    parts = Split(fieldsCsv, ",")
+
+    Dim i As Long
+    For i = LBound(parts) To UBound(parts)
+        Dim fieldName As String
+        fieldName = Trim$(parts(i))
+        If Len(fieldName) > 0 Then
+            idx.Fields.Append idx.CreateField(fieldName)
+        End If
+    Next i
+
+    tdf.Indexes.Append idx
+End Sub
+
+Private Function IsAlreadyExistsError(ByVal errNo As Long, ByVal errDesc As String) As Boolean
+    Dim d As String
+    d = LCase$(Nz(errDesc, ""))
+
+    If InStr(d, "already exists") > 0 Then
+        IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If InStr(d, "already has an index") > 0 Then
+        IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If InStr(d, "index already exists") > 0 Then
+        IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If errNo = 3012 Or errNo = 3283 Or errNo = 3284 Then
+        IsAlreadyExistsError = True
+    End If
+End Function
+
+Private Function IsIndexErrorIgnorable(ByVal errNo As Long, ByVal errDesc As String) As Boolean
+    Dim d As String
+    d = LCase$(Nz(errDesc, ""))
+
+    If IsAlreadyExistsError(errNo, errDesc) Then
+        IsIndexErrorIgnorable = True
+        Exit Function
+    End If
+
+    If InStr(d, "index") > 0 And InStr(d, "exists") > 0 Then
+        IsIndexErrorIgnorable = True
+        Exit Function
+    End If
+
+    If InStr(d, "invalid procedure call or argument") > 0 Then
+        IsIndexErrorIgnorable = True
+        Exit Function
+    End If
+
+    If errNo = 5 Then
+        IsIndexErrorIgnorable = True
+    End If
+End Function
+
+Private Function ShouldIgnoreSetupError(ByVal stepName As String, ByVal errNo As Long, ByVal errDesc As String) As Boolean
+    Dim s As String
+    s = LCase$(Nz(stepName, ""))
+
+    If InStr(s, "index") > 0 Then
+        ShouldIgnoreSetupError = IsIndexErrorIgnorable(errNo, errDesc)
+        Exit Function
+    End If
+
+    If InStr(s, "relationship") > 0 Then
+        If IsAlreadyExistsError(errNo, errDesc) Then
+            ShouldIgnoreSetupError = True
+            Exit Function
+        End If
+
+        If InStr(LCase$(Nz(errDesc, "")), "relationship") > 0 And InStr(LCase$(Nz(errDesc, "")), "exists") > 0 Then
+            ShouldIgnoreSetupError = True
+            Exit Function
+        End If
+    End If
+
+    If InStr(s, "saved quer") > 0 Then
+        If IsAlreadyExistsError(errNo, errDesc) Then
+            ShouldIgnoreSetupError = True
+            Exit Function
+        End If
+    End If
 End Function
 
 Private Function RelationExists(ByVal relationName As String) As Boolean

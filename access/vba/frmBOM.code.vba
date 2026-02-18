@@ -1,0 +1,73 @@
+Option Compare Database
+Option Explicit
+
+Private Sub cboFGItemID_AfterUpdate()
+    If Me.NewRecord Then
+        Me!VersionNo = GetNextBOMVersionNo(Me!FGItemID)
+        Me!VersionLabel = "v" & Me!VersionNo
+    End If
+End Sub
+
+Private Sub Form_BeforeInsert(Cancel As Integer)
+    Me!IsActive = False
+    Me!ActiveKey = Null
+    Me!CreatedOn = Now()
+    Me!CreatedBy = Environ$("USERNAME")
+End Sub
+
+Private Sub Form_Current()
+    On Error Resume Next
+    Me.cboFGItemID.Locked = Not Me.NewRecord
+    Me.sfmBOMLines.Enabled = Not IsNull(Me!BOMHeaderID)
+End Sub
+
+Private Sub cmdSave_Click()
+    SaveCurrentRecord
+    Me.sfmBOMLines.Enabled = True
+End Sub
+
+Private Sub cmdActivateBOM_Click()
+    On Error GoTo EH
+    SaveCurrentRecord
+    ActivateBOM Me!BOMHeaderID, Date
+    Me.Requery
+    MsgBox "BOM activated.", vbInformation
+    Exit Sub
+EH:
+    MsgBox Err.Description, vbExclamation
+End Sub
+
+Private Sub cmdCopyBOM_Click()
+    On Error GoTo EH
+    SaveCurrentRecord
+
+    Dim newID As Long
+    newID = CopyBOM(Me!BOMHeaderID)
+
+    DoCmd.OpenForm Me.Name, , , "BOMHeaderID=" & newID
+    Exit Sub
+EH:
+    MsgBox Err.Description, vbExclamation
+End Sub
+
+Private Sub cmdPrintBOM_Click()
+    On Error GoTo EH
+    SaveCurrentRecord
+
+    Dim runID As String
+    runID = BuildBOMExplosion(Me!BOMHeaderID, Date)
+
+    If TempVars.Exists("BOMRunID") Then TempVars.Remove "BOMRunID"
+    TempVars.Add "BOMRunID", runID
+
+    DoCmd.OpenReport "rptBOM", acViewPreview
+    Exit Sub
+EH:
+    MsgBox Err.Description, vbExclamation
+End Sub
+
+Private Sub SaveCurrentRecord()
+    If Me.Dirty Then
+        DoCmd.RunCommand acCmdSaveRecord
+    End If
+End Sub

@@ -10,30 +10,30 @@ Public Sub AutoSetupBOM(Optional ByVal RebuildQueries As Boolean = True)
     Application.Echo False
     DoCmd.Hourglass True
 
-    mCurrentStep = "Create tables"
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 062C 062F 0648 0644 200C 0647 0627")
     EnsureTables
 
-    mCurrentStep = "Create indexes"
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 0627 06CC 0646 062F 06A9 0633 200C 0647 0627")
     RunStepWithTolerance StepIndexes:=True
 
-    mCurrentStep = "Create relationships"
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 0631 0648 0627 0628 0637")
     RunStepWithTolerance StepRelationships:=True
 
     If RebuildQueries Then
-        mCurrentStep = "Create saved queries"
+        mCurrentStep = U("0627 06CC 062C 0627 062F 0020 06A9 0648 0626 0631 06CC 200C 0647 0627 06CC 0020 0630 062E 06CC 0631 0647 200C 0634 062F 0647")
         RunStepWithTolerance StepSavedQueries:=True
     End If
 
-    mCurrentStep = "Apply defaults and validation rules"
+    mCurrentStep = U("0627 0639 0645 0627 0644 0020 0645 0642 062F 0627 0631 0020 067E 06CC 0634 200C 0641 0631 0636 0020 0648 0020 0642 0648 0627 0639 062F 0020 0627 0639 062A 0628 0627 0631 0633 0646 062C 06CC")
     RunStepWithTolerance StepApplyRules:=True
 
-    mCurrentStep = "Seed lookup data"
+    mCurrentStep = U("062B 0628 062A 0020 062F 0627 062F 0647 200C 0647 0627 06CC 0020 067E 0627 06CC 0647")
     RunStepWithTolerance StepSeedData:=True
 
-    mCurrentStep = "Done"
+    mCurrentStep = U("067E 0627 06CC 0627 0646")
     DoCmd.Hourglass False
     Application.Echo True
-    MsgBox "BOM Auto Setup completed successfully.", vbInformation
+    MsgBoxU U("0631 0627 0647 200C 0627 0646 062F 0627 0632 06CC 0020 062E 0648 062F 06A9 0627 0631 0020 0042 004F 004D 0020 0628 0627 0020 0645 0648 0641 0642 06CC 062A 0020 0627 0646 062C 0627 0645 0020 0634 062F 002E"), vbInformation
     Exit Sub
 
 EH:
@@ -45,8 +45,8 @@ EH:
     On Error Resume Next
     DoCmd.Hourglass False
     Application.Echo True
-    MsgBox "BOM Auto Setup failed at step: " & mCurrentStep & vbCrLf & _
-           "Error " & errNo & ": " & errDesc, vbCritical
+    MsgBoxU U("0631 0627 0647 200C 0627 0646 062F 0627 0632 06CC 0020 062E 0648 062F 06A9 0627 0631 0020 0042 004F 004D 0020 062F 0631 0020 0645 0631 062D 0644 0647 0020 0632 06CC 0631 0020 0645 062A 0648 0642 0641 0020 0634 062F 003A 0020") & mCurrentStep & vbCrLf & _
+           U("062E 0637 0627 0020") & errNo & ": " & errDesc, vbCritical
     Err.Clear
 End Sub
 
@@ -96,10 +96,26 @@ Public Sub AutoSetupBOMWithUI()
     On Error GoTo EH
     AutoSetupBOM True
     BuildBOMUIObjects
-    MsgBox "BOM Auto Setup + UI completed successfully.", vbInformation
+    DoCmd.OpenForm "frmMainMenu"
+    MsgBoxU U("0631 0627 0647 200C 0627 0646 062F 0627 0632 06CC 0020 062E 0648 062F 06A9 0627 0631 0020 0042 004F 004D 0020 0648 0020 0631 0627 0628 0637 0020 06A9 0627 0631 0628 0631 06CC 0020 0628 0627 0020 0645 0648 0641 0642 06CC 062A 0020 0627 0646 062C 0627 0645 0020 0634 062F 002E"), vbInformation
     Exit Sub
 EH:
-    MsgBox "BOM Auto Setup + UI failed: " & Err.Description, vbCritical
+    MsgBoxU U("0631 0627 0647 200C 0627 0646 062F 0627 0632 06CC 0020 062E 0648 062F 06A9 0627 0631 0020 0042 004F 004D 0020 0648 0020 0631 0627 0628 0637 0020 06A9 0627 0631 0628 0631 06CC 0020 0646 0627 0645 0648 0641 0642 0020 0628 0648 062F 003A 0020") & Err.Description, vbCritical
+End Sub
+
+Public Sub RepairPersianUI_NoLocaleChange()
+    On Error GoTo EH
+
+    AutoSetupBOM True
+    ApplyBOMDefaultsAndRules
+    SeedLookupData
+    BuildBOMUIObjects
+
+    DoCmd.OpenForm "frmMainMenu"
+    MsgBoxU U("062A 0639 0645 06CC 0631 0020 0648 0020 0628 0627 0632 0633 0627 0632 06CC 0020 0646 0645 0627 06CC 0634 0020 0641 0627 0631 0633 06CC 0020 0628 062F 0648 0646 0020 062A 063A 06CC 06CC 0631 0020 062A 0646 0638 06CC 0645 0627 062A 0020 0633 06CC 0633 062A 0645 0020 0627 0646 062C 0627 0645 0020 0634 062F 002E"), vbInformation
+    Exit Sub
+EH:
+    MsgBoxU U("062A 0639 0645 06CC 0631 0020 0646 0645 0627 06CC 0634 0020 0641 0627 0631 0633 06CC 0020 0646 0627 0645 0648 0641 0642 0020 0628 0648 062F 003A 0020") & Err.Description, vbCritical
 End Sub
 
 Public Function RunAutoSetupBOM() As Boolean
@@ -212,11 +228,11 @@ Private Sub EnsureIndexes()
     TryEnsureIndex "tblBOMLines", "IX_tblBOMLines_ComponentItemID", "ComponentItemID", False
     TryEnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_RunID", "RunID", False
     TryEnsureIndex "tmpBOMExplosion", "IX_tmpBOMExplosion_Root", "RootBOMHeaderID", False
-    mCurrentStep = "Create indexes"
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 0627 06CC 0646 062F 06A9 0633 200C 0647 0627")
 End Sub
 
 Private Sub EnsureIndexWithStep(ByVal tableName As String, ByVal indexName As String, ByVal fieldsCsv As String, ByVal isUnique As Boolean)
-    mCurrentStep = "Create indexes: " & tableName & "." & indexName
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 0627 06CC 0646 062F 06A9 0633 003A 0020") & tableName & "." & indexName
     EnsureIndex tableName, indexName, fieldsCsv, isUnique
 End Sub
 
@@ -225,6 +241,10 @@ Private Sub TryEnsureIndex(ByVal tableName As String, ByVal indexName As String,
     EnsureIndexWithStep tableName, indexName, fieldsCsv, isUnique
     Exit Sub
 EH:
+    If IndexExists(tableName, indexName) Then
+        Err.Clear
+        Exit Sub
+    End If
     If IsIndexErrorIgnorable(Err.Number, Err.Description) Then
         Err.Clear
         Exit Sub
@@ -245,7 +265,7 @@ Private Sub TryEnsureRelation(ByVal relationName As String, ByVal parentTable As
                               ByVal parentField As String, ByVal childField As String, _
                               Optional ByVal cascadeDelete As Boolean = False)
     On Error GoTo EH
-    mCurrentStep = "Create relationships: " & relationName
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 0631 0627 0628 0637 0647 003A 0020") & relationName
     EnsureRelation relationName, parentTable, childTable, parentField, childField, cascadeDelete
     Exit Sub
 EH:
@@ -353,7 +373,7 @@ End Sub
 
 Private Sub SafeUpsertQueryDef(ByVal queryName As String, ByVal sqlText As String)
     On Error GoTo EH
-    mCurrentStep = "Create saved queries: " & queryName
+    mCurrentStep = U("0627 06CC 062C 0627 062F 0020 06A9 0648 0626 0631 06CC 0020 0630 062E 06CC 0631 0647 200C 0634 062F 0647 003A 0020") & queryName
     UpsertQueryDef queryName, sqlText
     Exit Sub
 EH:
@@ -505,6 +525,21 @@ Private Function IsAlreadyExistsError(ByVal errNo As Long, ByVal errDesc As Stri
 
     If errNo = 3012 Or errNo = 3283 Or errNo = 3284 Then
         IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If errNo = 3010 Or errNo = 3004 Then
+        IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If InStr(d, "duplicate") > 0 And InStr(d, "name") > 0 Then
+        IsAlreadyExistsError = True
+        Exit Function
+    End If
+
+    If InStr(d, "cannot create") > 0 And InStr(d, "already") > 0 Then
+        IsAlreadyExistsError = True
     End If
 End Function
 
@@ -536,12 +571,12 @@ Private Function ShouldIgnoreSetupError(ByVal stepName As String, ByVal errNo As
     Dim s As String
     s = LCase$(Nz(stepName, ""))
 
-    If InStr(s, "index") > 0 Then
+    If InStr(s, "index") > 0 Or InStr(s, U("0627 06CC 0646 062F 06A9 0633")) > 0 Then
         ShouldIgnoreSetupError = IsIndexErrorIgnorable(errNo, errDesc)
         Exit Function
     End If
 
-    If InStr(s, "relationship") > 0 Then
+    If InStr(s, "relationship") > 0 Or InStr(s, U("0631 0627 0628 0637 0647")) > 0 Then
         If IsAlreadyExistsError(errNo, errDesc) Then
             ShouldIgnoreSetupError = True
             Exit Function
@@ -553,7 +588,7 @@ Private Function ShouldIgnoreSetupError(ByVal stepName As String, ByVal errNo As
         End If
     End If
 
-    If InStr(s, "saved quer") > 0 Then
+    If InStr(s, "saved quer") > 0 Or InStr(s, U("06A9 0648 0626 0631 06CC")) > 0 Then
         If IsAlreadyExistsError(errNo, errDesc) Then
             ShouldIgnoreSetupError = True
             Exit Function

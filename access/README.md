@@ -18,6 +18,7 @@ This folder contains a full Microsoft Access (ACCDB) implementation package for:
 - `access/vba/modBOMSchemaRules.bas`: apply defaults/validation rules + seed lookups
 - `access/vba/modBOMAutoSetup.bas`: one-click installer (tables, indexes, relations, queries, rules, seed)
 - `access/vba/modBOMUIBuilder.bas`: one-click form/report builder inside Access
+- `access/vba/frmMainMenu.code.vba`: `frmMainMenu` form events
 - `access/vba/frmItem.code.vba`: `frmItem` form events
 - `access/vba/frmBOM.code.vba`: `frmBOM` main form events
 - `access/vba/subfrmBOMLines.code.vba`: `subfrmBOMLines` events
@@ -29,6 +30,7 @@ This folder contains a full Microsoft Access (ACCDB) implementation package for:
 2. Run all statements from `access/sql/01_schema.sql` (Create Query -> SQL View -> Execute).
 3. Create saved queries in Access using SQL from `access/sql/02_queries.sql`.
 4. Import VBA modules/code:
+   - Import `modUnicodeText.bas` first (required for Unicode-safe Persian text generation).
    - Import `modBOM.bas` as a standard module named `modBOM`.
    - Import `modBOMSchemaRules.bas` as a standard module named `modBOMSchemaRules`.
    - Import `modBOMAutoSetup.bas` as a standard module named `modBOMAutoSetup`.
@@ -67,6 +69,7 @@ AutoSetupBOMWithUI
 This will:
 
 - run backend setup (`AutoSetupBOM`)
+- create/replace `frmMainMenu`
 - create/replace `frmItem`
 - create/replace `subfrmBOMLines`
 - create/replace `frmBOM`
@@ -78,6 +81,22 @@ Alternative command (same result):
 ```vb
 AutoSetupAllWithUI
 ```
+
+## Fix Persian Text Without Changing Windows Locale
+
+If captions/messages are shown as mojibake (`Ø...`), do **not** change system locale.
+Use this recovery path:
+
+1. In VBA editor, remove old BOM modules (`modBOM*`, `modUnicodeText`) from current DB.
+2. Re-import modules from `access/vba` (start with `modUnicodeText.bas`).
+3. Run `Debug -> Compile`.
+4. In Immediate Window run:
+
+```vb
+RepairPersianUI_NoLocaleChange
+```
+
+This command re-applies captions, re-seeds lookup text, and rebuilds forms/reports with Unicode-safe strings.
 
 ## Populate Existing ACCDB from Terminal
 

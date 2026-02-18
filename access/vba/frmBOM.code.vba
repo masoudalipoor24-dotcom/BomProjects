@@ -31,7 +31,7 @@ Private Sub cmdActivateBOM_Click()
     SaveCurrentRecord
     ActivateBOM Me!BOMHeaderID, Date
     Me.Requery
-    MsgBox "BOM activated.", vbInformation
+    MsgBoxU U("0646 0633 062E 0647 0020 0042 004F 004D 0020 0628 0627 0020 0645 0648 0641 0642 06CC 062A 0020 0641 0639 0627 0644 0020 0634 062F 002E"), vbInformation
     Exit Sub
 EH:
     MsgBox Err.Description, vbExclamation
@@ -57,8 +57,7 @@ Private Sub cmdPrintBOM_Click()
     Dim runID As String
     runID = BuildBOMExplosion(Me!BOMHeaderID, Date)
 
-    If TempVars.Exists("BOMRunID") Then TempVars.Remove "BOMRunID"
-    TempVars.Add "BOMRunID", runID
+    SetTempVarValue "BOMRunID", runID
 
     DoCmd.OpenReport "rptBOM", acViewPreview
     Exit Sub

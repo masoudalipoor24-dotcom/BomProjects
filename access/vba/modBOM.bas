@@ -102,7 +102,7 @@ Public Sub ActivateBOM(ByVal BOMHeaderID As Long, Optional ByVal AsOfDate As Dat
     Set rsH = db.OpenRecordset("SELECT BOMHeaderID, FGItemID FROM tblBOMHeader WHERE BOMHeaderID=" & BOMHeaderID, dbOpenSnapshot)
     If rsH.EOF Then
         rsH.Close
-        Err.Raise vbObjectError + 100, "ActivateBOM", "Invalid BOMHeaderID."
+        Err.Raise vbObjectError + 100, "ActivateBOM", U("0634 0646 0627 0633 0647 0020 0042 004F 004D 0020 0646 0627 0645 0639 062A 0628 0631 0020 0627 0633 062A 002E")
     End If
 
     Dim fgID As Long
@@ -114,7 +114,7 @@ Public Sub ActivateBOM(ByVal BOMHeaderID As Long, Optional ByVal AsOfDate As Dat
     Do While Not rsL.EOF
         If Not ValidateNoCycle(fgID, rsL!ComponentItemID, AsOfDate) Then
             rsL.Close
-            Err.Raise vbObjectError + 101, "ActivateBOM", "Activation blocked. Cycle detected."
+            Err.Raise vbObjectError + 101, "ActivateBOM", U("0641 0639 0627 0644 200C 0633 0627 0632 06CC 0020 0627 0646 062C 0627 0645 0020 0646 0634 062F 003A 0020 062D 0644 0642 0647 0020 0028 0043 0079 0063 006C 0065 0029 0020 062F 0631 0020 0633 0627 062E 062A 0627 0631 0020 062A 0634 062E 06CC 0635 0020 062F 0627 062F 0647 0020 0634 062F 002E")
         End If
         rsL.MoveNext
     Loop
@@ -147,7 +147,7 @@ Public Function CopyBOM(ByVal SourceBOMHeaderID As Long) As Long
     Set rsS = db.OpenRecordset("SELECT FGItemID FROM tblBOMHeader WHERE BOMHeaderID=" & SourceBOMHeaderID, dbOpenSnapshot)
     If rsS.EOF Then
         rsS.Close
-        Err.Raise vbObjectError + 200, "CopyBOM", "Source BOM not found."
+        Err.Raise vbObjectError + 200, "CopyBOM", U("0042 004F 004D 0020 0645 0628 062F 0627 0020 067E 06CC 062F 0627 0020 0646 0634 062F 002E")
     End If
 
     Dim fgID As Long
@@ -162,7 +162,7 @@ Public Function CopyBOM(ByVal SourceBOMHeaderID As Long) As Long
 
     db.Execute "INSERT INTO tblBOMHeader (FGItemID, VersionNo, VersionLabel, IsActive, ActiveKey, Notes, CreatedOn, CreatedBy) " & _
                "VALUES (" & fgID & ", " & nextVer & ", " & SqlTextLiteral("v" & nextVer) & ", False, Null, " & _
-               SqlTextLiteral("Copied from BOMHeaderID=" & SourceBOMHeaderID) & ", Now(), " & SqlTextLiteral(Environ$("USERNAME")) & ");", dbFailOnError
+               SqlTextLiteral(U("06A9 067E 06CC 0020 0627 0632 0020 0042 004F 004D 0048 0065 0061 0064 0065 0072 0049 0044 003D") & SourceBOMHeaderID) & ", Now(), " & SqlTextLiteral(Environ$("USERNAME")) & ");", dbFailOnError
 
     Dim newID As Long
     newID = db.OpenRecordset("SELECT @@IDENTITY AS NewID;", dbOpenSnapshot)!NewID
@@ -194,7 +194,7 @@ Public Function BuildBOMExplosion(ByVal RootBOMHeaderID As Long, Optional ByVal 
     Set rsH = db.OpenRecordset("SELECT FGItemID FROM tblBOMHeader WHERE BOMHeaderID=" & RootBOMHeaderID, dbOpenSnapshot)
     If rsH.EOF Then
         rsH.Close
-        Err.Raise vbObjectError + 300, "BuildBOMExplosion", "Invalid root BOMHeaderID."
+        Err.Raise vbObjectError + 300, "BuildBOMExplosion", U("0634 0646 0627 0633 0647 0020 0042 004F 004D 0020 0631 06CC 0634 0647 0020 0646 0627 0645 0639 062A 0628 0631 0020 0627 0633 062A 002E")
     End If
 
     Dim rootItemID As Long
@@ -291,3 +291,30 @@ Private Function SqlLongOrNull(ByVal value As Variant) As String
         SqlLongOrNull = CStr(CLng(value))
     End If
 End Function
+
+Public Function TempVarExists(ByVal varName As String) As Boolean
+    On Error GoTo SafeExit
+
+    Dim tv As Variant
+    For Each tv In TempVars
+        If StrComp(tv.Name, varName, vbTextCompare) = 0 Then
+            TempVarExists = True
+            Exit Function
+        End If
+    Next tv
+
+SafeExit:
+End Function
+
+Public Sub RemoveTempVarIfExists(ByVal varName As String)
+    On Error Resume Next
+    If TempVarExists(varName) Then
+        TempVars.Remove varName
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Sub SetTempVarValue(ByVal varName As String, ByVal varValue As Variant)
+    RemoveTempVarIfExists varName
+    TempVars.Add varName, varValue
+End Sub

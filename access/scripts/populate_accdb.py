@@ -66,22 +66,41 @@ def execute_schema(conn: pyodbc.Connection, schema_sql_path: Path) -> tuple[int,
 
 def seed_lookups(conn: pyodbc.Connection) -> None:
     cur = conn.cursor()
-
-    seed_sql = [
-        "INSERT INTO tblItemType (TypeCode, TypeName) VALUES ('FG','Finished Good')",
-        "INSERT INTO tblItemType (TypeCode, TypeName) VALUES ('SA','Sub Assembly')",
-        "INSERT INTO tblItemType (TypeCode, TypeName) VALUES ('RM','Raw Material')",
-        "INSERT INTO tblItemType (TypeCode, TypeName) VALUES ('PKG','Packaging')",
-        "INSERT INTO tblUOM (UOMCode, UOMName, IsActive) VALUES ('PCS','Piece',True)",
-        "INSERT INTO tblUOM (UOMCode, UOMName, IsActive) VALUES ('KG','Kilogram',True)",
-        "INSERT INTO tblUOM (UOMCode, UOMName, IsActive) VALUES ('M','Meter',True)",
+    item_types = [
+        ("FG", "\u06a9\u0627\u0644\u0627\u06cc \u0646\u0647\u0627\u06cc\u06cc"),
+        ("SA", "\u0646\u06cc\u0645\u200c\u0633\u0627\u062e\u062a\u0647"),
+        ("RM", "\u0645\u0648\u0627\u062f \u0627\u0648\u0644\u06cc\u0647"),
+        ("PKG", "\u0628\u0633\u062a\u0647\u200c\u0628\u0646\u062f\u06cc"),
+    ]
+    uoms = [
+        ("PCS", "\u0639\u062f\u062f"),
+        ("KG", "\u06a9\u06cc\u0644\u0648\u06af\u0631\u0645"),
+        ("M", "\u0645\u062a\u0631"),
     ]
 
-    for stmt in seed_sql:
+    for code, name in item_types:
         try:
-            cur.execute(stmt)
+            cur.execute("UPDATE tblItemType SET TypeName=? WHERE TypeCode=?", (name, code))
         except Exception:
-            # Ignore duplicate insert failures on re-run.
+            pass
+        try:
+            cur.execute("INSERT INTO tblItemType (TypeCode, TypeName) VALUES (?,?)", (code, name))
+        except Exception:
+            # Ignore duplicates on rerun.
+            pass
+
+    for code, name in uoms:
+        try:
+            cur.execute("UPDATE tblUOM SET UOMName=?, IsActive=True WHERE UOMCode=?", (name, code))
+        except Exception:
+            pass
+        try:
+            cur.execute(
+                "INSERT INTO tblUOM (UOMCode, UOMName, IsActive) VALUES (?,?,True)",
+                (code, name),
+            )
+        except Exception:
+            # Ignore duplicates on rerun.
             pass
 
 
